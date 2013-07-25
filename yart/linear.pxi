@@ -25,7 +25,7 @@ class LinearRegression:
 
     def fit(self, X, y):
         self.coef_ = numpy.zeros(X.shape[1] + 1)
-        gradient_descent(square_loss, X, y, self.coef_)
+        optimize_lbfgs(square_loss, X, y, self.coef_)
 
     def predict(self, X):
          return X.dot(self.coef_[:-1]) + self.coef_[-1]
