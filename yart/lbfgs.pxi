@@ -96,8 +96,7 @@ cdef int lbfgs_progress(void *cb_data_v,
     logging.info('Iteration {}: loss={} ||x||={} ||g||={}'.format(k, fx, xnorm, gnorm))
     return 0 # TODO if KeyboardInterrupt, non-zero
 
-cdef optimize_lbfgs(loss_callback_t loss_callback, X, y, numpy.ndarray[DOUBLE, ndim=1] w):
-    cdef Dataset dataset = Dataset(X.data, X.indptr, X.indices, y)
+cdef optimize_lbfgs(loss_callback_t loss_callback, Dataset dataset, numpy.ndarray[DOUBLE, ndim=1] w):
     cdef CallbackData cb_data = CallbackData(dataset)
     cb_data.loss_callback = loss_callback
     # w -> x

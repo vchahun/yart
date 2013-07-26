@@ -1,1 +1,1 @@
-from models import LinearRegression
+from models import LinearRegression, LogisticRegression, OrdinalLogisticRegression

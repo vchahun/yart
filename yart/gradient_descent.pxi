@@ -17,8 +17,7 @@ cdef void gradient_descent_progress(void* data, double* x, double* g, double fx,
         double xnorm, double gnorm, unsigned step, unsigned n, unsigned k, unsigned ls):
     logging.info('Iteration {}: loss={} ||x||={} ||g||={}'.format(k, fx, xnorm, gnorm))
 
-cdef gradient_descent(loss_callback_t loss_callback, X, y, numpy.ndarray[DOUBLE, ndim=1] w):
-    cdef Dataset dataset = Dataset(X.data, X.indptr, X.indices, y)
+cdef gradient_descent(loss_callback_t loss_callback, Dataset dataset, numpy.ndarray[DOUBLE, ndim=1] w):
     cdef CallbackData cb_data = CallbackData(dataset)
     cb_data.loss_callback = loss_callback
     # w -> x

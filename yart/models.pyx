@@ -22,3 +22,5 @@ cdef class CallbackData:
 #include "gradient_descent.pxi"
 include "lbfgs.pxi"
 include "linear.pxi"
+include "logistic.pxi"
+include "ordinal.pxi"
