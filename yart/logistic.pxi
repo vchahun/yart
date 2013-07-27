@@ -25,7 +25,7 @@ cdef double log_loss(Dataset _dataset, Weight w, Weight gradient):
 
     cdef DOUBLE *x_data_ptr
     cdef INTEGER *x_ind_ptr
-    cdef unsigned x_nnz
+    cdef INTEGER x_nnz
     cdef INTEGER y
 
     cdef unsigned i, k, offset
@@ -56,7 +56,7 @@ class LogisticRegression:
     def fit(self, X, y):
         y = numpy.asarray(y, dtype=numpy.int32)
         self.n_classes = len(numpy.unique(y))
-        self.coef_ = numpy.zeros((X.shape[1] + 1) * (self.n_classes - 1))
+        self.coef_ = numpy.zeros((X.shape[1] + 1) * (self.n_classes - 1), dtype=numpy.float64)
         dataset = IntegerDataset(X, y)
         optimize_lbfgs(log_loss, dataset, self.coef_)
         return self

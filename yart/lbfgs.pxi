@@ -76,6 +76,54 @@ cdef extern from "lbfgs.h":
     lbfgsfloatval_t *lbfgs_malloc(int)
     void lbfgs_free(lbfgsfloatval_t *)
 
+_ERROR_MESSAGES = {
+    LBFGSERR_UNKNOWNERROR: "Unknown error." ,
+    LBFGSERR_LOGICERROR: "Logic error.",
+    LBFGSERR_OUTOFMEMORY: "Insufficient memory.",
+    LBFGSERR_CANCELED: "The minimization process has been canceled.",
+    LBFGSERR_INVALID_N: "Invalid number of variables specified.",
+    LBFGSERR_INVALID_N_SSE: "Invalid number of variables (for SSE) specified.",
+    LBFGSERR_INVALID_X_SSE: "The array x must be aligned to 16 (for SSE).",
+    LBFGSERR_INVALID_EPSILON: "Invalid parameter epsilon specified.",
+    LBFGSERR_INVALID_TESTPERIOD: "Invalid parameter past specified.",
+    LBFGSERR_INVALID_DELTA: "Invalid parameter delta specified.",
+    LBFGSERR_INVALID_LINESEARCH: "Invalid parameter linesearch specified.",
+    LBFGSERR_INVALID_MINSTEP: "Invalid parameter max_step specified.",
+    LBFGSERR_INVALID_MAXSTEP: "Invalid parameter max_step specified.",
+    LBFGSERR_INVALID_FTOL: "Invalid parameter ftol specified.",
+    LBFGSERR_INVALID_WOLFE: "Invalid parameter wolfe specified.",
+    LBFGSERR_INVALID_GTOL: "Invalid parameter gtol specified.",
+    LBFGSERR_INVALID_XTOL: "Invalid parameter xtol specified.",
+    LBFGSERR_INVALID_MAXLINESEARCH:
+        "Invalid parameter max_linesearch specified.",
+    LBFGSERR_INVALID_ORTHANTWISE: "Invalid parameter orthantwise_c specified.",
+    LBFGSERR_INVALID_ORTHANTWISE_START:
+        "Invalid parameter orthantwise_start specified.",
+    LBFGSERR_INVALID_ORTHANTWISE_END:
+        "Invalid parameter orthantwise_end specified.",
+    LBFGSERR_OUTOFINTERVAL:
+        "The line-search step went out of the interval of uncertainty.",
+    LBFGSERR_INCORRECT_TMINMAX:
+        "A logic error occurred;"
+        " alternatively, the interval of uncertainty became too small.",
+    LBFGSERR_ROUNDING_ERROR:
+        "A rounding error occurred;"
+        " alternatively, no line-search step satisfies"
+        " the sufficient decrease and curvature conditions.",
+    LBFGSERR_MINIMUMSTEP: "The line-search step became smaller than min_step.",
+    LBFGSERR_MAXIMUMSTEP: "The line-search step became larger than max_step.",
+    LBFGSERR_MAXIMUMLINESEARCH:
+        "The line-search routine reaches the maximum number of evaluations.",
+    LBFGSERR_MAXIMUMITERATION:
+        "The algorithm routine reaches the maximum number of iterations.",
+    LBFGSERR_WIDTHTOOSMALL:
+        "Relative width of the interval of uncertainty is at most xtol.",
+    LBFGSERR_INVALIDPARAMETERS:
+        "A logic error (negative line-search step) occurred.",
+    LBFGSERR_INCREASEGRADIENT:
+        "The current search direction increases the objective function value.",
+}
+
 cdef lbfgsfloatval_t lbfgs_evaluate(void *cb_data_v,
         lbfgsconst_p x, lbfgsfloatval_t *g,
         int n, lbfgsfloatval_t step):
@@ -96,6 +144,9 @@ cdef int lbfgs_progress(void *cb_data_v,
     logging.info('Iteration {}: loss={} ||x||={} ||g||={}'.format(k, fx, xnorm, gnorm))
     return 0 # TODO if KeyboardInterrupt, non-zero
 
+class LBFGSError(Exception):
+    pass
+
 cdef optimize_lbfgs(loss_callback_t loss_callback, Dataset dataset, numpy.ndarray[DOUBLE, ndim=1] w):
     cdef CallbackData cb_data = CallbackData(dataset)
     cb_data.loss_callback = loss_callback
@@ -111,6 +162,15 @@ cdef optimize_lbfgs(loss_callback_t loss_callback, Dataset dataset, numpy.ndarra
             lbfgs_evaluate,
             lbfgs_progress,
             <void*>cb_data, &params)
-    # x -> w
-    memcpy(w.data, x, w.size * sizeof(double))
-    lbfgs_free(x)
+    try:
+        if (ret == LBFGS_SUCCESS
+            or ret == LBFGS_ALREADY_MINIMIZED
+            or ret == LBFGSERR_ROUNDING_ERROR):
+            # x -> w
+            memcpy(w.data, x, w.size * sizeof(double))
+        elif ret == LBFGSERR_OUTOFMEMORY:
+            raise MemoryError
+        else:
+            raise LBFGSError(_ERROR_MESSAGES[ret])
+    finally:
+        lbfgs_free(x)

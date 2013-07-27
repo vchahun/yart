@@ -16,14 +16,15 @@ cdef class FloatDataset(Dataset):
         cdef numpy.ndarray[INTEGER, ndim=1] X_indptr = X.indptr
         cdef numpy.ndarray[INTEGER, ndim=1] X_indices = X.indices
         self.n_samples, self.n_features = X.shape
+        assert Y.size == self.n_samples
         self.X_data_ptr = <DOUBLE *>X_data.data
         self.X_indptr_ptr = <INTEGER *>X_indptr.data
         self.X_indices_ptr = <INTEGER *>X_indices.data
         self.Y_data_ptr = <DOUBLE *>Y.data
 
-    cdef void row(self, unsigned index,
+    cdef void row(self, int index,
             DOUBLE **x_data_ptr, INTEGER **x_ind_ptr,
-            unsigned *x_nnz, DOUBLE *y):
+            INTEGER *x_nnz, DOUBLE *y):
         cdef int offset = self.X_indptr_ptr[index]
         y[0] = self.Y_data_ptr[index]
         x_data_ptr[0] = self.X_data_ptr + offset
@@ -39,14 +40,15 @@ cdef class IntegerDataset(Dataset):
         cdef numpy.ndarray[INTEGER, ndim=1] X_indptr = X.indptr
         cdef numpy.ndarray[INTEGER, ndim=1] X_indices = X.indices
         self.n_samples, self.n_features = X.shape
+        assert Y.size == self.n_samples
         self.X_data_ptr = <DOUBLE *>X_data.data
         self.X_indptr_ptr = <INTEGER *>X_indptr.data
         self.X_indices_ptr = <INTEGER *>X_indices.data
         self.Y_data_ptr = <INTEGER *>Y.data
 
-    cdef void row(self, unsigned index,
+    cdef void row(self, int index,
             DOUBLE **x_data_ptr, INTEGER **x_ind_ptr,
-            unsigned *x_nnz, INTEGER *y):
+            INTEGER *x_nnz, INTEGER *y):
         cdef int offset = self.X_indptr_ptr[index]
         y[0] = self.Y_data_ptr[index]
         x_data_ptr[0] = self.X_data_ptr + offset

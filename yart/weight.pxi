@@ -1,5 +1,5 @@
 cdef class Weight:
-    cdef double* data
+    cdef DOUBLE* data
     cdef Py_ssize_t length
 
     def __cinit__(self, Py_ssize_t length):
@@ -11,14 +11,16 @@ cdef class Weight:
         if x_nnz == 0:
             return 0
         cdef double result = 0
+        cdef unsigned j
         for j in range(x_nnz):
             result += self.data[x_ind_ptr[j] + offset] * x_data_ptr[j]
         return result
 
     cdef void add(self, unsigned offset, double scale,
             DOUBLE* x_data_ptr, INTEGER* x_ind_ptr, unsigned x_nnz):
-        if x_nnz == 0:
+        if x_nnz == 0 or scale == 0:
             return
+        cdef unsigned j
         for j in range(x_nnz):
             self.data[x_ind_ptr[j] + offset] += scale * x_data_ptr[j]
 

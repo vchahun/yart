@@ -51,7 +51,7 @@ cdef double ordinal_logistic_loss(Dataset _dataset, Weight w, Weight gradient):
     cdef IntegerDataset dataset = <IntegerDataset> _dataset
     cdef Py_ssize_t n_features = dataset.n_features
     cdef Py_ssize_t n_thresholds = w.length - dataset.n_features
-    cdef double* thresholds = w.data + n_features
+    cdef DOUBLE* thresholds = w.data + n_features
 
     if unordered_thresholds(thresholds, n_thresholds):
         return 1e10
@@ -60,7 +60,7 @@ cdef double ordinal_logistic_loss(Dataset _dataset, Weight w, Weight gradient):
 
     cdef DOUBLE *x_data_ptr
     cdef INTEGER *x_ind_ptr
-    cdef unsigned x_nnz
+    cdef INTEGER x_nnz
     cdef INTEGER y
 
     cdef unsigned i
@@ -103,7 +103,7 @@ class OrdinalLogisticRegression:
         y = y_reset
         K = len(self.original_levels)
         # initialize weight vector
-        self.coef_ = numpy.zeros(X.shape[1] + K - 1) + 1
+        self.coef_ = numpy.zeros(X.shape[1] + K - 1, dtype=numpy.float64)
         self.coef_[X.shape[1]:] = range(K - 1)
         dataset = IntegerDataset(X, y)
         optimize_lbfgs(ordinal_logistic_loss, dataset, self.coef_)

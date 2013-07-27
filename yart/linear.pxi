@@ -1,3 +1,6 @@
+cdef extern from "math.h":
+    int isnan(double x)
+
 cdef double square_loss(Dataset _dataset, Weight w, Weight gradient):
     """
     w.size = D + 1 = coefficients + intercept
@@ -7,7 +10,7 @@ cdef double square_loss(Dataset _dataset, Weight w, Weight gradient):
 
     cdef DOUBLE *x_data_ptr
     cdef INTEGER *x_ind_ptr
-    cdef unsigned x_nnz
+    cdef INTEGER x_nnz
     cdef DOUBLE y
 
     cdef unsigned i
@@ -26,8 +29,9 @@ class LinearRegression:
         pass
 
     def fit(self, X, y):
-        self.coef_ = numpy.zeros(X.shape[1] + 1)
-        dataset = FloatDataset(X, numpy.asarray(y, dtype=numpy.float64))
+        self.coef_ = numpy.zeros(X.shape[1] + 1, dtype=numpy.float64)
+        y = numpy.asarray(y, dtype=numpy.float64)
+        dataset = FloatDataset(X, y)
         optimize_lbfgs(square_loss, dataset, self.coef_)
         return self
 
