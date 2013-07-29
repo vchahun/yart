@@ -43,7 +43,7 @@ cdef int unordered_thresholds(double* thresholds, int n_thresholds):
             return True
     return False
 
-cdef double ordinal_logistic_loss(Dataset _dataset, Weight w, Weight gradient):
+cdef double ordinal_logistic_loss(Dataset _dataset, Weight w, Weight gradient, float l2):
     """
     w.size = D + K - 1 = coefficients + levels - 1
     y = 0 ... K - 1
@@ -85,32 +85,50 @@ cdef double ordinal_logistic_loss(Dataset _dataset, Weight w, Weight gradient):
                 u = -1 / expm1(thresholds[y] - thresholds[y - 1]) # 1/(1-exp(t_j - t_{j-1}))
             v = cum_prob(wx, y, thresholds, n_thresholds)
             gradient.data[n_features + y] += -1 + u + v
+
+    # Regularization term
+    cdef unsigned j
+    for j in range(n_features):
+        loss += l2 * w.data[j]**2
+        gradient.data[j] += 2 * l2 * w.data[j]
+
     return loss
 
 class OrdinalLogisticRegression:
-    def __cinit__(self):
-        pass
+    """
+    Ordinal logistic regression.
+    Minimize regularized ordinal logistic loss:
+        L(x, y|w,t) = - sum_i log (p(k <= y_i|x_i, w,t) - p(k <= y_i - 1|x_i, w,t)) + l2 ||w||^2
+        p(k <= y|x, w) = 1/(1 + exp(w.x - t_y)) 1 <= y <= K - 1
+
+    Parameters
+    ----------
+    l2: float, default=0
+        L2 regularization strength
+    """
+    def __init__(self, l2=0):
+        self.l2 = l2
 
     def fit(self, X, y):
         y = numpy.asarray(y)
         # map y to range(K) where K is the number of levels
-        self.original_levels = numpy.unique(y)
+        self.original_levels_ = numpy.unique(y)
         cdef numpy.ndarray[INTEGER, ndim=1] y_reset = numpy.zeros(y.size, dtype=numpy.int32)
         cdef INTEGER i
         cdef int u
-        for i, u in enumerate(self.original_levels):
+        for i, u in enumerate(self.original_levels_):
             y_reset[y == u] = i
         y = y_reset
-        K = len(self.original_levels)
+        K = len(self.original_levels_)
         # initialize weight vector
         self.coef_ = numpy.zeros(X.shape[1] + K - 1, dtype=numpy.float64)
         self.coef_[X.shape[1]:] = range(K - 1)
         dataset = IntegerDataset(X, y)
-        optimize_lbfgs(ordinal_logistic_loss, dataset, self.coef_)
+        optimize_lbfgs(ordinal_logistic_loss, dataset, self.coef_, self.l2)
         return self
 
     def predict(self, X):
-        K = len(self.original_levels)
+        K = len(self.original_levels_)
         n_features = self.coef_.size - K + 1
         assert X.shape[1] == n_features
         y_pred = numpy.zeros(X.shape[0], int) + K - 1
@@ -123,4 +141,4 @@ class OrdinalLogisticRegression:
                 if wx < threshold:
                     y_pred[i] = k
                     break
-        return self.original_levels[y_pred]
+        return self.original_levels_[y_pred]

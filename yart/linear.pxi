@@ -1,7 +1,7 @@
 cdef extern from "math.h":
     int isnan(double x)
 
-cdef double square_loss(Dataset _dataset, Weight w, Weight gradient):
+cdef double square_loss(Dataset _dataset, Weight w, Weight gradient, float l2):
     """
     w.size = D + 1 = coefficients + intercept
     """
@@ -22,17 +22,34 @@ cdef double square_loss(Dataset _dataset, Weight w, Weight gradient):
         gradient.add(0, residual, x_data_ptr, x_ind_ptr, x_nnz)
         gradient.data[w.length - 1] += residual
 
+    # Regularization term
+    cdef unsigned j
+    for j in range(dataset.n_features):
+        loss += l2 * w.data[j]**2
+        gradient.data[j] += 2 * l2 * w.data[j]
+
     return loss
 
 class LinearRegression:
-    def __cinit__(self):
-        pass
+    """
+    Linear regression.
+    Minimize regularized squared loss:
+        L(x, y|w) = 1/2 ||x.w - y||^2 + l2 ||w||^2
+
+    Parameters
+    ----------
+    l2: float, default=0
+        L2 regularization strength
+    """
+    def __init__(self, l2=0):
+        self.l2 = l2
+
 
     def fit(self, X, y):
         self.coef_ = numpy.zeros(X.shape[1] + 1, dtype=numpy.float64)
         y = numpy.asarray(y, dtype=numpy.float64)
         dataset = FloatDataset(X, y)
-        optimize_lbfgs(square_loss, dataset, self.coef_)
+        optimize_lbfgs(square_loss, dataset, self.coef_, self.l2)
         return self
 
     def predict(self, X):

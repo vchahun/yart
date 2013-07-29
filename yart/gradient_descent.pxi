@@ -10,15 +10,16 @@ cdef double gradient_descent_eval(void* data, double* x, double* g, unsigned n, 
     point.data = x
     cdef Weight gradient = Weight(n)
     gradient.data = g
-    return cb_data.loss_callback(cb_data.dataset, point, gradient)
+    return cb_data.loss_callback(cb_data.dataset, point, gradient, cb_data.l2)
 
 # Progress function
 cdef void gradient_descent_progress(void* data, double* x, double* g, double fx,
         double xnorm, double gnorm, unsigned step, unsigned n, unsigned k, unsigned ls):
     logging.info('Iteration {}: loss={} ||x||={} ||g||={}'.format(k, fx, xnorm, gnorm))
 
-cdef gradient_descent(loss_callback_t loss_callback, Dataset dataset, numpy.ndarray[DOUBLE, ndim=1] w):
-    cdef CallbackData cb_data = CallbackData(dataset)
+cdef gradient_descent(loss_callback_t loss_callback, Dataset dataset,
+        numpy.ndarray[DOUBLE, ndim=1] w, float l2):
+    cdef CallbackData cb_data = CallbackData(dataset, l2)
     cb_data.loss_callback = loss_callback
     # w -> x
     cdef double* x = <double*> malloc(w.size * sizeof(double))

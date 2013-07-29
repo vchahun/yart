@@ -134,7 +134,7 @@ cdef lbfgsfloatval_t lbfgs_evaluate(void *cb_data_v,
     gradient.data = g
     # LBFGS does not set gradient to zero
     memset(g, 0, n * sizeof(double))
-    return cb_data.loss_callback(cb_data.dataset, point, gradient)
+    return cb_data.loss_callback(cb_data.dataset, point, gradient, cb_data.l2)
 
 cdef int lbfgs_progress(void *cb_data_v,
         lbfgsconst_p x, lbfgsconst_p g,
@@ -147,8 +147,9 @@ cdef int lbfgs_progress(void *cb_data_v,
 class LBFGSError(Exception):
     pass
 
-cdef optimize_lbfgs(loss_callback_t loss_callback, Dataset dataset, numpy.ndarray[DOUBLE, ndim=1] w):
-    cdef CallbackData cb_data = CallbackData(dataset)
+cdef optimize_lbfgs(loss_callback_t loss_callback, Dataset dataset,
+        numpy.ndarray[DOUBLE, ndim=1] w, float l2):
+    cdef CallbackData cb_data = CallbackData(dataset, l2)
     cb_data.loss_callback = loss_callback
     # w -> x
     cdef lbfgsfloatval_t* x = lbfgs_malloc(w.size)
