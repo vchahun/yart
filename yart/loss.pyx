@@ -21,7 +21,6 @@ cdef class CallbackData:
         self.dataset = dataset
         self.l2 = l2
 
-#include "gradient_descent.pxi"
 include "lbfgs.pxi"
 include "linear.pxi"
 include "logistic.pxi"

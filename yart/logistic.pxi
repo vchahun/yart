@@ -57,41 +57,39 @@ cdef double log_loss(Dataset _dataset, Weight w, Weight gradient, float l2):
 
     return loss
 
-class LogisticRegression:
+class LogisticLoss:
     """
-    Logistic regression.
     Minimize regularized log-loss:
         L(x, y|w) = - sum_i log p(y_i|x_i, w) + l2 ||w||^2
         p(y|x, w) = exp(w[y].x) / (sum_y' exp(w[y'].x))
-
-    Parameters
-    ----------
-    l2: float, default=0
-        L2 regularization strength
     """
-    def __init__(self, l2=0):
-        self.l2 = l2
+    def fit(self, IntegerDataset dataset, numpy.ndarray[DOUBLE, ndim=1] coef, double l2):
+        optimize_lbfgs(log_loss, dataset, coef, l2)
 
-    def fit(self, X, y):
-        y = numpy.asarray(y, dtype=numpy.int32)
-        self.n_classes = len(numpy.unique(y))
-        self.coef_ = numpy.zeros((X.shape[1] + 1) * (self.n_classes - 1), dtype=numpy.float64)
-        dataset = IntegerDataset(X, y)
-        optimize_lbfgs(log_loss, dataset, self.coef_, self.l2)
-        return self
-
-    def predict(self, X):
-        cdef unsigned n_features = self.coef_.size/(self.n_classes - 1) - 1
-        assert X.shape[1] == n_features
+    def predict(self, int n_features, int n_classes, numpy.ndarray[DOUBLE, ndim=1] coef, X):
         y_pred = numpy.zeros(X.shape[0], int)
-        log_probs = numpy.zeros(self.n_classes)
+        log_probs = numpy.zeros(n_classes)
         cdef unsigned i, k, offset
         cdef double wx
         for i in range(X.shape[0]):
-            log_probs[self.n_classes - 1] = 0
-            for k in range(self.n_classes - 1):
+            log_probs[n_classes - 1] = 0
+            for k in range(n_classes - 1):
                 offset = (n_features + 1) * k
-                wx = X[i].dot(self.coef_[offset:offset+n_features]) + self.coef_[offset + n_features - 1]
-                log_probs[k] = wx
+                log_probs[k] = X[i].dot(coef[offset:offset+n_features]) + coef[offset + n_features - 1]
             y_pred[i] = log_probs.argmax()
         return y_pred
+
+    def predict_proba(self, int n_features, int n_classes, numpy.ndarray[DOUBLE, ndim=1] coef, X):
+        y_proba = numpy.zeros((X.shape[0], n_classes))
+        cdef unsigned i, k, offset
+        cdef double wx, z
+        for i in range(X.shape[0]):
+            z = 0
+            y_proba[i, n_classes - 1] = 0
+            for k in range(n_classes - 1):
+                offset = (n_features + 1) * k
+                wx = X[i].dot(coef[offset:offset+n_features]) + coef[offset + n_features - 1]
+                y_proba[i, k] = wx
+                z = logaddexp(z, wx)
+            y_proba[i] = numpy.exp(y_proba[i] - z)
+        return y_proba
