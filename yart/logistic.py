@@ -1,4 +1,5 @@
 import numpy
+from sklearn.preprocessing import LabelEncoder
 from  .loss import IntegerDataset, LogisticLoss
 
 class LogisticRegression:
@@ -18,7 +19,8 @@ class LogisticRegression:
         self.loss = LogisticLoss()
 
     def fit(self, X, y):
-        y = numpy.asarray(y, dtype=numpy.int32)
+        self.label_encoder_ = LabelEncoder()
+        y = self.label_encoder_.fit_transform(y).astype(numpy.int32)
         self.n_classes = len(numpy.unique(y))
         self.coef_ = numpy.zeros((X.shape[1] + 1) * (self.n_classes - 1), dtype=numpy.float64)
         dataset = IntegerDataset(X, y)
@@ -28,7 +30,7 @@ class LogisticRegression:
     def predict(self, X):
         n_features = self.coef_.size/(self.n_classes - 1) - 1
         assert X.shape[1] == n_features
-        return self.loss.predict(n_features, self.n_classes, self.coef_, X)
+        return self.label_encoder_.inverse_transform(self.loss.predict(n_features, self.n_classes, self.coef_, X))
 
     def predict_proba(self, X):
         n_features = self.coef_.size/(self.n_classes - 1) - 1

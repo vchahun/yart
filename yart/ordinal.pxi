@@ -31,7 +31,7 @@ cdef int unordered_thresholds(double* thresholds, int n_thresholds):
 class BaseOrdinalLoss:
     def predict(self, int n_features, int n_thresholds, numpy.ndarray[DOUBLE, ndim=1] coef, X):
         weights, thresholds = coef[:n_features], coef[n_features:]
-        y_pred = numpy.zeros(X.shape[0], int) + n_thresholds
+        cdef numpy.ndarray[INTEGER, ndim=1] y_pred = numpy.zeros(X.shape[0], numpy.int32) + n_thresholds
         cdef unsigned i, k
         cdef double wx, threshold
         for i in range(X.shape[0]):
@@ -42,4 +42,17 @@ class BaseOrdinalLoss:
                     break
         return y_pred
 
+    def predict_proba(self, int n_features, int n_thresholds, numpy.ndarray[DOUBLE, ndim=1] coef, X):
+        weights = coef[:n_features]
+        cdef DOUBLE* thresholds = <DOUBLE*>(coef.data) + n_features
+        y_proba = numpy.zeros((X.shape[0], n_thresholds + 1))
+        cdef unsigned i, k
+        cdef double wx, threshold
+        for i in range(X.shape[0]):
+            wx = X[i].dot(weights)
+            for k in range(n_thresholds + 1):
+                y_proba[i, k] = exp(ordinal_log_prob(wx, k, thresholds, n_thresholds))
+        return y_proba
+
 include "ordinal_logistic.pxi"
+include "ordinal_all_threshold.pxi"

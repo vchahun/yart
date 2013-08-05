@@ -83,15 +83,3 @@ class OrdinalLogisticLoss(BaseOrdinalLoss):
     """
     def fit(self, IntegerDataset dataset, numpy.ndarray[DOUBLE, ndim=1] coef, double l2):
         optimize_lbfgs(ordinal_logistic_loss, dataset, coef, l2)
-
-    def predict_proba(self, int n_features, int n_thresholds, numpy.ndarray[DOUBLE, ndim=1] coef, X):
-        weights = coef[:n_features]
-        cdef DOUBLE* thresholds = <DOUBLE*>(coef.data) + n_features
-        y_proba = numpy.zeros((X.shape[0], n_thresholds + 1))
-        cdef unsigned i, k
-        cdef double wx, threshold
-        for i in range(X.shape[0]):
-            wx = X[i].dot(weights)
-            for k in range(n_thresholds + 1):
-                y_proba[i, k] = exp(ordinal_log_prob(wx, k, thresholds, n_thresholds))
-        return y_proba

@@ -1,21 +1,26 @@
 import numpy
-from .loss import IntegerDataset, OrdinalLogisticLoss
+from .loss import IntegerDataset, OrdinalLogisticLoss, OrdinalAllThresholdLoss
 
 class OrdinalRegression:
     """
     Ordinal logistic regression.
     Minimize regularized log-loss:
-        L(x, y|w,t) = - sum_i log p(y_i|x_i, w, t) + l2 ||w||^2
+        L(x, y|w, t) = - sum_i log p(y_i|x_i, w, t) + l2 ||w||^2
 
     Parameters
     ----------
     l2: float, default=0
         L2 regularization strength
+
+    loss: {'logistic', 'all_threshold'}
+        Loss to minimize; defines p(y_i|x_i, w, t)
     """
     def __init__(self, l2=0, loss='logistic'):
         self.l2 = l2
         if loss == 'logistic':
             self.loss = OrdinalLogisticLoss()
+        elif loss == 'all_threshold':
+            self.loss = OrdinalAllThresholdLoss()
         else:
             raise NotImplementedError
 

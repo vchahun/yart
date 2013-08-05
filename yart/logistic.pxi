@@ -67,8 +67,8 @@ class LogisticLoss:
         optimize_lbfgs(log_loss, dataset, coef, l2)
 
     def predict(self, int n_features, int n_classes, numpy.ndarray[DOUBLE, ndim=1] coef, X):
-        y_pred = numpy.zeros(X.shape[0], int)
-        log_probs = numpy.zeros(n_classes)
+        cdef numpy.ndarray[INTEGER, ndim=1] y_pred = numpy.zeros(X.shape[0], numpy.int32)
+        cdef numpy.ndarray[DOUBLE, ndim=1] log_probs = numpy.zeros(n_classes)
         cdef unsigned i, k, offset
         cdef double wx
         for i in range(X.shape[0]):
@@ -80,7 +80,7 @@ class LogisticLoss:
         return y_pred
 
     def predict_proba(self, int n_features, int n_classes, numpy.ndarray[DOUBLE, ndim=1] coef, X):
-        y_proba = numpy.zeros((X.shape[0], n_classes))
+        cdef numpy.ndarray[DOUBLE, ndim=2] y_proba = numpy.zeros((X.shape[0], n_classes))
         cdef unsigned i, k, offset
         cdef double wx, z
         for i in range(X.shape[0]):
